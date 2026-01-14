@@ -2,18 +2,33 @@
 # app/api/routes/auth.py
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel,EmailStr
 from sqlmodel import Session, select
 
 from app.api.deps import get_db
 from app.models import User
 from app.core.security import verify_password, create_access_token, create_refresh_token, decode_refresh_token
-from app.crud import create_refresh_token_record, revoke_refresh_token, is_refresh_token_revoked, get_user_by_email
+from app.crud import create_refresh_token_record, revoke_refresh_token, is_refresh_token_revoked, get_user_by_email,create_user
 
 router = APIRouter(tags=["auth"])
 
 class RefreshBody(BaseModel):
     refresh_token: str
+
+
+class RegisterBody(BaseModel):
+    email: EmailStr
+    password: str
+
+@router.post("/register")
+def register(payload: RegisterBody, db: Session = Depends(get_db)):
+    # kiểm tra tồn tại
+    if get_user_by_email(db, payload.email):
+        raise HTTPException(status_code=400, detail="Email đã tồn tại")
+    # tạo user thường (is_active=True, is_superuser=False)
+    user = create_user(db, email=payload.email, password=payload.password, is_superuser=False, is_active=True)
+    return {"id": user.id, "email": user.email}
+
 
 @router.post("/login")
 def login(

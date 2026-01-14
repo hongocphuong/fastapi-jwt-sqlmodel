@@ -10,7 +10,7 @@ from sqlmodel import SQLModel
 from alembic import context
 
 # alembic/env.py (bổ sung)
-from app.models import User, Item, RefreshToken  # noqa
+#from app.models import User, Item, RefreshToken  # noqa
 
 # --- Alembic Config ---
 config = context.config
@@ -26,7 +26,7 @@ if PROJECT_ROOT not in sys.path:
 
 # ----- target metadata -----
 # Import models để metadata có đầy đủ bảng
-from app.models import Item  # đảm bảo import tất cả model vào scope này
+from app.models import User, Item, RefreshToken, Role, UserRoleLink  # noqa
 
 target_metadata = SQLModel.metadata
 

@@ -1,0 +1,13 @@
+Metadata-Version: 2.4
+Name: fastapi-backend
+Version: 0.1.0
+Summary: FastAPI + JWT + Alembic
+Author: Your Name
+Requires-Python: >=3.9
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
+Requires-Dist: sqlmodel
+Requires-Dist: sqlalchemy
+Requires-Dist: passlib
+Requires-Dist: python-jose
+Requires-Dist: alembic

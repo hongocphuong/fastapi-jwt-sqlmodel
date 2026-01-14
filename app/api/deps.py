@@ -1,15 +1,15 @@
 
+from typing import Callable, Sequence
 from fastapi import Depends, HTTPException, status
+from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from sqlmodel import Session, select
-from fastapi.security import OAuth2PasswordBearer
 
 from app.db import engine
-from app.models import User
-from app.core.security import ALGORITHM
+from app.models import User, Role, UserRoleLink
 from app.core.config import settings
+from app.core.security import ALGORITHM
 
-#OAuth2PasswordBearer — lấy token từ header Authorization: Bearer ... (được cấu hình tokenUrl="/api/v1/login").
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/login")
 
 def get_db():
@@ -24,18 +24,44 @@ def get_current_user(
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
     except JWTError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid authentication",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise HTTPException(status_code=401, detail="Invalid authentication")
 
     user = db.exec(select(User).where(User.email == email)).first()
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
+        raise HTTPException(status_code=401, detail="User not found")
     return user
+
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    if not current_user.is_active:
+        raise HTTPException(status_code=403, detail="Inactive user")
+    return current_user
+
+def get_current_superuser(current_user: User = Depends(get_current_active_user)) -> User:
+    if not current_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Insufficient privileges")
+    return current_user
+
+def _user_has_role(db: Session, user_id: int, role_name: str) -> bool:
+    return db.exec(
+        select(Role).join(UserRoleLink)
+        .where(UserRoleLink.user_id == user_id, Role.name == role_name)
+    ).first() is not None
+
+def require_role(role_name: str) -> Callable:
+    def _require(current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)) -> User:
+        if current_user.is_superuser:
+            return current_user
+        if not _user_has_role(db, current_user.id, role_name):
+            raise HTTPException(status_code=403, detail=f"Role '{role_name}' required")
+        return current_user
+    return _require
+
+def require_any_role(role_names: Sequence[str]) -> Callable:
+    def _require(current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)) -> User:
+        if current_user.is_superuser:
+            return current_user
+        if not any(_user_has_role(db, current_user.id, rn) for rn in role_names):
+            raise HTTPException(status_code=403, detail=f"Any of roles {role_names} required")
+        return current_user
+    return _require
+
