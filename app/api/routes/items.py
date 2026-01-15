@@ -17,6 +17,7 @@ def get_items(
     is_admin_role = db.exec(
         select(Role).join(UserRoleLink).where(UserRoleLink.user_id == current_user.id, Role.name == "admin")
     ).first() is not None
+    
     if current_user.is_superuser or is_admin_role:
         return list_items_all(db)
     return list_items(db, owner_id=current_user.id)

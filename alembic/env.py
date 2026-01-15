@@ -26,7 +26,7 @@ if PROJECT_ROOT not in sys.path:
 
 # ----- target metadata -----
 # Import models để metadata có đầy đủ bảng
-from app.models import User, Item, RefreshToken, Role, UserRoleLink  # noqa
+from app.models import User, Item, RefreshToken, Role, UserRoleLink, EmailToken, PasswordResetToken  # noqa
 
 target_metadata = SQLModel.metadata
 

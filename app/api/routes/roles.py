@@ -14,7 +14,9 @@ class RoleCreate(BaseModel):
 
 @router.post("", dependencies=[Depends(get_current_superuser)])
 def create_role_api(payload: RoleCreate, db: Session = Depends(get_db)):
+    print("Creating role:", payload.name)
     role = create_role(db, name=payload.name, description=payload.description)
+    print("Created role:", role)
     return role
 
 @router.get("", dependencies=[Depends(get_current_superuser)])
